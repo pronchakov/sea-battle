@@ -1,96 +1,76 @@
 package edu.seabattle.game;
 
-import edu.seabattle.game.entity.CellStatus;
-import edu.seabattle.game.entity.Player;
-import edu.seabattle.move.FireResult;
-import edu.seabattle.player.PlayerInteraction;
-
-import java.util.concurrent.CompletableFuture;
+import edu.seabattle.game.field.cell.CellStatus;
+import edu.seabattle.game.move.MoveResult;
+import edu.seabattle.game.player.Communicator;
+import edu.seabattle.game.player.FirstMovePlayerSelectorStrategy;
+import edu.seabattle.game.player.Player;
 
 public class Game {
-    private PlayerSequence playerSequence;
+    private Players players;
     private Observer observer;
+    private FirstMovePlayerSelectorStrategy firstMovePlayerSelectorStrategy;
 
-    public Game(Observer observer, PlayerInteraction playerInteraction1, PlayerInteraction playerInteraction2) {
+    public Game(Observer observer, Communicator comm1, Communicator comm2, FirstMovePlayerSelectorStrategy firstMovePlayerSelectorStrategy) {
         this.observer = observer;
-        playerSequence =new PlayerSequence(new Player(playerInteraction1), new Player(playerInteraction2));
+        this.firstMovePlayerSelectorStrategy = firstMovePlayerSelectorStrategy;
+        players =new Players(new Player(comm1), new Player(comm2));
     }
 
     public void startGameProcess() {
         observer.notifyGamePreparing();
 
-        requestPlayersForTheirShips();
+        // todo: multitask
+        requestShipsFromPlayer(players.first());
+        requestShipsFromPlayer(players.second());
 
-        // TODO: decide who will be first to move
-        // (multiple design strategies)
+        chooseFirstPlayerToMove();
 
-        // start the game
-        // (notify coordinator about process))
         observer.notifyGameStart();
-
-        // request moves sequentially from players until all ships will be destroyed or
-        // there will be no more cells to shoot
-        // (notify coordinator about process)
-
         do {
-            playerSequence.useNextPlayer();
-            final var attackPlayer = playerSequence.getCurrent();
-            final var defencePlayer = playerSequence.getNext();
+            final var attackPlayer = players.getCurrent();
+            final var defencePlayer = players.getNext();
 
-            final var move = attackPlayer.contact().giveMeYourMove();
-            final var firedCellStatus = defencePlayer.getCellStatus(move);
+            final var fireCoordinates = attackPlayer.getFireCoordinates();
+            final var firedCellStatus = defencePlayer.getCellStatus(fireCoordinates);
 
             if (firedCellStatus == CellStatus.CLEAR) {
-                attackPlayer.getOpponent().setCellStatus(move, CellStatus.MISSED);
-                defencePlayer.getSelf().setCellStatus(move, CellStatus.MISSED);
-
-                attackPlayer.contact().yourMoveResult(move, FireResult.MISSED);
-                defencePlayer.contact().opponentMoveResult(move, FireResult.MISSED);
-
-                observer.notifyMove(attackPlayer.contact(), move, FireResult.MISSED);
-            } else if (firedCellStatus == CellStatus.DECK_ALIVE) {
-                attackPlayer.getOpponent().setCellStatus(move, CellStatus.DECK_INJURED);
-                defencePlayer.getSelf().setCellStatus(move, CellStatus.DECK_INJURED);
-
-                // todo: check ship sink
-
-                attackPlayer.contact().yourMoveResult(move, FireResult.INJURED);
-                defencePlayer.contact().opponentMoveResult(move, FireResult.INJURED);
-
-                observer.notifyMove(attackPlayer.contact(), move, FireResult.INJURED);
-            } else if (firedCellStatus == CellStatus.DECK_INJURED || firedCellStatus == CellStatus.MISSED) {
-                attackPlayer.contact().yourMoveResult(move, FireResult.REPEATED);
-                defencePlayer.contact().opponentMoveResult(move, FireResult.REPEATED);
-
-                observer.notifyMove(attackPlayer.contact(), move, FireResult.REPEATED);
+                attackPlayer.youMissed(fireCoordinates);
+                defencePlayer.opponentMissed(fireCoordinates);
+                players.changePlayer();
+                observer.notifyMove(attackPlayer, fireCoordinates, MoveResult.MISSED);
+            } else if (firedCellStatus == CellStatus.DECK) {
+                if (defencePlayer.isShipSunk(fireCoordinates)) {
+                    final var ship = defencePlayer.getSunkShip(fireCoordinates);
+                    attackPlayer.youDestroedShip(fireCoordinates, ship);
+                    defencePlayer.opponentDestroedShip(fireCoordinates, ship);
+                    observer.notifyMove(attackPlayer, fireCoordinates, MoveResult.SUNK, ship);
+                } else {
+                    attackPlayer.youInjuredDeck(fireCoordinates);
+                    defencePlayer.opponentInjuredDeck(fireCoordinates);
+                    observer.notifyMove(attackPlayer, fireCoordinates, MoveResult.INJURED);
+                }
+            } else {
+                // todo: error, repeat request
             }
 
-
-            if (true /*game ended*/) {
-                attackPlayer.contact().youWin();
-                defencePlayer.contact().youLost();
-                observer.notifyGameEnd(attackPlayer.contact());
+            if (defencePlayer.areAllShipsSunk()) {
+                attackPlayer.youWin();
+                defencePlayer.youLost();
+                observer.notifyGameEnd(attackPlayer);
                 break;
             }
         } while (true /*game not end*/);
     }
 
-    private void requestPlayersForTheirShips() {
-        CompletableFuture.allOf(
-                placeYourShips(playerSequence.first()),
-                placeYourShips(playerSequence.last())
-        ).join();
+    private void chooseFirstPlayerToMove() {
+        final var chosedPlayer = firstMovePlayerSelectorStrategy.chooseFirst(players.first(), players.second());
+        players.setCurrent(chosedPlayer);
     }
 
-    // TODO: use virtual threads here
-    private CompletableFuture<Void> placeYourShips(Player player) {
-        return CompletableFuture
-                .supplyAsync(() -> player.contact().placeYourShips())
-//                .thenAcceptAsync(check ships a met rules)
-                .thenAccept(ships -> {
-                    player.setShips(ships);
-                    observer.notifyPlayerIsReady(player.contact());
-                });
+    private void requestShipsFromPlayer(Player player) {
+        player.placeYourShips();
+        observer.notifyPlayerIsReady(player);
     }
 
 }

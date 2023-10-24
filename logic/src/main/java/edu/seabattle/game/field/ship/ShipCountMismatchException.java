@@ -1,4 +1,4 @@
-package edu.seabattle.game.entity.exception;
+package edu.seabattle.game.field.ship;
 
 public class ShipCountMismatchException extends Exception {
 }

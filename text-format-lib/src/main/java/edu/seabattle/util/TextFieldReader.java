@@ -1,8 +1,8 @@
 package edu.seabattle.util;
 
-import edu.seabattle.game.entity.Cell;
-import edu.seabattle.game.entity.CellStatus;
-import edu.seabattle.game.entity.Field;
+import edu.seabattle.game.field.cell.Cell;
+import edu.seabattle.game.field.cell.CellStatus;
+import edu.seabattle.game.field.Field;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -42,11 +42,11 @@ public class TextFieldReader {
                 if (prefix == ' ' && value == ' ' && suffix == ' ') {
                     cells[i][currentCharsIndex] = new Cell(currentCharsIndex, i - 2, CellStatus.CLEAR);
                 } else if (prefix == '[' && value == ' ' && suffix == ']') {
-                    cells[i][currentCharsIndex] = new Cell(currentCharsIndex, i - 2, CellStatus.DECK_ALIVE);
+                    cells[i][currentCharsIndex] = new Cell(currentCharsIndex, i - 2, CellStatus.DECK);
                 } else if (value == '•') {
                     cells[i][currentCharsIndex] = new Cell(currentCharsIndex, i - 2, CellStatus.MISSED);
                 } else if (prefix == '[' && value == '⨯' && suffix == ']') {
-                    cells[i][currentCharsIndex] = new Cell(currentCharsIndex, i - 2, CellStatus.DECK_INJURED);
+                    cells[i][currentCharsIndex] = new Cell(currentCharsIndex, i - 2, CellStatus.INJURED_DECK);
                 } else {
                     throw new WrongFieldFormatException();
                 }

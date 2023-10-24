@@ -1,6 +1,6 @@
-package edu.seabattle.game.entity.exception;
+package edu.seabattle.game.field.ship;
 
-import edu.seabattle.game.entity.CellCoordinate;
+import edu.seabattle.game.field.cell.Coordinates;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
@@ -11,5 +11,5 @@ import java.util.List;
 @AllArgsConstructor
 public class ShipIsNotLinearException extends Throwable {
     @NonNull
-    private List<CellCoordinate> ship;
+    private List<Coordinates> ship;
 }

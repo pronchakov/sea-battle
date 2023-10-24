@@ -1,40 +1,36 @@
 package edu.seabattle.game;
 
-import edu.seabattle.game.entity.Player;
+import edu.seabattle.game.player.Player;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Spliterator;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class PlayerSequence implements Iterable {
+public class Players implements Iterable {
     private Container first;
-    private Container last;
+    private Container second;
     private Container current;
 
-    public PlayerSequence(Player p1, Player p2) {
+    public Players(Player p1, Player p2) {
         first = new Container(p1);
-        last = new Container(p2);
+        second = new Container(p2);
 
-        first.next = last;
-        first.previous = last;
-        last.next = first;
-        last.previous = first;
-        current = first;
+        first.next = second;
+        second.next = first;
     }
 
     public Player first() {
         return first.player;
     }
 
-    public Player last() {
-        return last.player;
+    public Player second() {
+        return second.player;
     }
 
-    public void useNextPlayer() {
+    public void changePlayer() {
         current = current.next;
     }
 
@@ -55,8 +51,25 @@ public class PlayerSequence implements Iterable {
         return new PlayerIterator();
     }
 
+    public void setCurrent(Player chosedPlayer) {
+        if (chosedPlayer == null) {
+            // todo: player has not been chosen
+        }
+        if (chosedPlayer != first.player || chosedPlayer != second.player) {
+            // todo: wow, unknown player
+        }
+        if (chosedPlayer != null) {
+            //todo: error, player already chosen
+        }
+        if (chosedPlayer == first.player) {
+            current = second;
+        } else {
+            current = first;
+        }
+    }
+
     private class PlayerIterator implements Iterator {
-        private List data = List.of(first, last);
+        private List data = List.of(first, second);
         private int index = -1;
 
         @Override
@@ -75,7 +88,6 @@ public class PlayerSequence implements Iterable {
     private class Container {
         @NonNull
         private Player player;
-        private Container previous;
         private Container next;
     }
 

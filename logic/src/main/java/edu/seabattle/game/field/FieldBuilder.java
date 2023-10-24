@@ -1,17 +1,19 @@
-package edu.seabattle.game.entity;
+package edu.seabattle.game.field;
 
+import edu.seabattle.game.field.cell.Cell;
+import edu.seabattle.game.field.cell.CellStatus;
+import edu.seabattle.game.field.cell.Coordinates;
 import edu.seabattle.game.IsIdenticalCollector;
-import edu.seabattle.game.entity.exception.FieldBuildException;
-import edu.seabattle.game.entity.exception.ShipCountMismatchException;
-import edu.seabattle.game.entity.exception.ShipIsNotLinearException;
-import edu.seabattle.game.entity.exception.WrongShipsTypesException;
+import edu.seabattle.game.field.ship.ShipCountMismatchException;
+import edu.seabattle.game.field.ship.ShipIsNotLinearException;
+import edu.seabattle.game.field.ship.WrongShipsTypesException;
 
 import java.util.HashMap;
 import java.util.List;
 
 public class FieldBuilder {
 
-    private List<List<CellCoordinate>> ships;
+    private List<List<Coordinates>> ships;
     private Field field;
 
     public FieldBuilder() {
@@ -36,7 +38,7 @@ public class FieldBuilder {
         return field;
     }
 
-    public FieldBuilder withShips(List<List<CellCoordinate>> ships) {
+    public FieldBuilder withShips(List<List<Coordinates>> ships) {
         this.ships = ships;
         return this;
     }
@@ -66,9 +68,9 @@ public class FieldBuilder {
     }
 
     private void checkShipsInLine() throws ShipIsNotLinearException {
-        for (List<CellCoordinate> ship : ships) {
+        for (List<Coordinates> ship : ships) {
             final var colsIdentical = ship.stream()
-                    .map(value -> value.getCol())
+                    .map(value -> value.getColumn())
                     .collect(new IsIdenticalCollector());
 
             final var rowsIdentical = ship.stream()
